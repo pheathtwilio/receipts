@@ -39,7 +39,7 @@ npm install
 cp .env.example .env
 ```
 
-7. Update `.env` with your Firebase credentials:
+7. Update `.env` with your Firebase credentials and allowed users:
 
 ```
 VITE_FIREBASE_API_KEY=your_api_key
@@ -48,7 +48,10 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
+VITE_ALLOWED_USERS=user1@example.com,user2@example.com
 ```
+
+**Note:** `VITE_ALLOWED_USERS` is a comma-separated list of email addresses that are authorized to access the application. Leave empty to allow all users.
 
 ### 3. Firebase Security Rules
 

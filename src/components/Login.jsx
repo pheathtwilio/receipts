@@ -12,7 +12,21 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Check if user is in allowed list
+      const allowedUsers = import.meta.env.VITE_ALLOWED_USERS || '';
+      const allowedEmails = allowedUsers.split(',').map(email => email.trim().toLowerCase());
+      
+      if (allowedEmails.length > 0 && allowedEmails[0] !== '' && !allowedEmails.includes(user.email.toLowerCase())) {
+        // User not allowed, sign them out
+        await auth.signOut();
+        setError('Access denied. Your email is not authorized to access this application.');
+        setLoading(false);
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err) {
       setError('Failed to sign in with Google: ' + err.message);

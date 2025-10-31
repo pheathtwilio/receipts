@@ -29,6 +29,7 @@ Copy `.env.example` to `.env` and configure Firebase credentials:
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
+- `VITE_ALLOWED_USERS` - Comma-separated list of authorized email addresses (optional)
 
 ## Architecture
 
@@ -41,10 +42,10 @@ Copy `.env.example` to `.env` and configure Firebase credentials:
 
 ### Key Components
 
-- **Login.jsx**: Google OAuth sign-in using Firebase Auth
-- **Dashboard.jsx**: Main layout with navigation sidebar and content area (uses React Router Outlet)
+- **Login.jsx**: Google OAuth sign-in using Firebase Auth with allowed users validation
+- **Dashboard.jsx**: Main layout with navigation sidebar showing nested receipt groups and photo counts
 - **ReceiptGroups.jsx**: Lists all receipt groups, handles group creation/deletion
-- **ReceiptGroupDetail.jsx**: Displays photos in card layout, handles upload/delete/move operations
+- **ReceiptGroupDetail.jsx**: Displays photos in card layout, handles upload/delete/move/download operations
 - **PrivateRoute.jsx**: Route guard that redirects unauthenticated users to login
 
 ### Data Flow
@@ -87,12 +88,17 @@ All Firebase services are initialized in `src/config/firebase.js` and exported:
 ## Important Notes
 
 - All routes except `/` require authentication
+- **Access Control**: Only users listed in `VITE_ALLOWED_USERS` environment variable can log in (leave empty to allow all)
 - Photo deletions remove files from Firebase Storage and update Firestore documents
 - Group deletion only removes the Firestore document (photos remain in Storage unless manually cleaned)
 - Moving photos transfers the storage URL references without re-uploading files
 - The app uses Firebase client SDK (not Admin SDK) with security rules enforcing authentication
 - The SMS receipt group (ID: `SMS`) is a default group that cannot be deleted from the UI
 - SMS group has `isDefault: true` flag to prevent deletion
+- **Real-time Updates**: The UI uses Firestore `onSnapshot` listeners for live updates when photos are added via Cloud Functions or other clients
+- Both ReceiptGroups and ReceiptGroupDetail components update automatically when data changes in Firestore
+- **Nested Navigation**: Receipt groups appear as children under the Receipts menu item in the sidebar with photo counts
+- Sidebar shows real-time photo counts for each group
 
 ## Cloud Functions
 

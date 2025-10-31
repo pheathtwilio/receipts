@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 
@@ -18,30 +18,30 @@ const ReceiptGroupDetail = () => {
   const [targetGroupId, setTargetGroupId] = useState('');
 
   useEffect(() => {
-    fetchGroupData();
     fetchAllGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
-
-  const fetchGroupData = async () => {
-    try {
-      setLoading(true);
-      const docRef = doc(db, 'receiptGroups', groupId);
-      const docSnap = await getDoc(docRef);
-      
+    
+    // Set up real-time listener for the group
+    const groupRef = doc(db, 'receiptGroups', groupId);
+    const unsubscribe = onSnapshot(groupRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setGroup({ id: docSnap.id, ...data });
         setPhotos(data.photos || []);
+        setLoading(false);
       } else {
         setError('Group not found');
+        setLoading(false);
       }
-    } catch (err) {
+    }, (err) => {
       setError('Failed to fetch group: ' + err.message);
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
 
   const fetchAllGroups = async () => {
     try {

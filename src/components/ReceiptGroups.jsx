@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { initializeSmsGroup } from '../utils/initializeSmsGroup';
@@ -25,27 +25,30 @@ const ReceiptGroups = () => {
     const initialize = async () => {
       try {
         await initializeSmsGroup();
-        await fetchGroups();
       } catch (err) {
         console.error('Error initializing:', err);
-        await fetchGroups(); // Still try to fetch groups even if initialization fails
       }
     };
     initialize();
-  }, []);
 
-  const fetchGroups = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'receiptGroups'));
-      const groupsData = querySnapshot.docs.map(doc => ({
+    // Set up real-time listener for receipt groups
+    const groupsRef = collection(db, 'receiptGroups');
+    const unsubscribe = onSnapshot(groupsRef, (snapshot) => {
+      const groupsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setGroups(groupsData);
-    } catch (err) {
+      setLoading(false);
+    }, (err) => {
       setError('Failed to fetch groups: ' + err.message);
-    }
-  };
+      setLoading(false);
+    });
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, []);
+
 
   const handleCreateGroup = async () => {
     if (!newGroup.name || !newGroup.friendlyName) {
@@ -65,7 +68,7 @@ const ReceiptGroups = () => {
       });
       setShowModal(false);
       setNewGroup({ id: '', name: '', friendlyName: '' });
-      fetchGroups();
+      // Real-time listener will update automatically
     } catch (err) {
       setError('Failed to create group: ' + err.message);
     } finally {
@@ -86,7 +89,7 @@ const ReceiptGroups = () => {
 
     try {
       await deleteDoc(doc(db, 'receiptGroups', groupId));
-      fetchGroups();
+      // Real-time listener will update automatically
     } catch (err) {
       setError('Failed to delete group: ' + err.message);
     }
