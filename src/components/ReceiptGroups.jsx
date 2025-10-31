@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../config/firebase';
+import { initializeSmsGroup } from '../utils/initializeSmsGroup';
 
 const generateRandomId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -21,7 +22,16 @@ const ReceiptGroups = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchGroups();
+    const initialize = async () => {
+      try {
+        await initializeSmsGroup();
+        await fetchGroups();
+      } catch (err) {
+        console.error('Error initializing:', err);
+        await fetchGroups(); // Still try to fetch groups even if initialization fails
+      }
+    };
+    initialize();
   }, []);
 
   const fetchGroups = async () => {
@@ -63,7 +73,13 @@ const ReceiptGroups = () => {
     }
   };
 
-  const handleDeleteGroup = async (groupId) => {
+  const handleDeleteGroup = async (groupId, groupData) => {
+    // Prevent deletion of SMS default group
+    if (groupId === 'SMS' || groupData?.isDefault) {
+      setError('Cannot delete the default SMS group');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this group?')) {
       return;
     }
@@ -165,18 +181,25 @@ const ReceiptGroups = () => {
                 <div className="text-xs text-gray-500">
                   Created: {formatDate(group.createdAt)}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteGroup(group.id);
-                  }}
-                  className="text-red-600 hover:text-red-800 p-1"
-                  title="Delete group"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                {!(group.id === 'SMS' || group.isDefault) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteGroup(group.id, group);
+                    }}
+                    className="text-red-600 hover:text-red-800 p-1"
+                    title="Delete group"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+                {(group.id === 'SMS' || group.isDefault) && (
+                  <span className="text-xs text-blue-600 font-medium px-2 py-1 bg-blue-50 rounded">
+                    Default
+                  </span>
+                )}
               </div>
             </div>
           ))}

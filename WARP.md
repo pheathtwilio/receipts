@@ -91,3 +91,14 @@ All Firebase services are initialized in `src/config/firebase.js` and exported:
 - Group deletion only removes the Firestore document (photos remain in Storage unless manually cleaned)
 - Moving photos transfers the storage URL references without re-uploading files
 - The app uses Firebase client SDK (not Admin SDK) with security rules enforcing authentication
+- The SMS receipt group (ID: `SMS`) is a default group that cannot be deleted from the UI
+- SMS group has `isDefault: true` flag to prevent deletion
+
+## Cloud Functions
+
+Located in `functions/` directory:
+
+- **uploadImagesFromUrls**: HTTP endpoint that accepts image URLs, downloads them, and uploads to Firebase Storage in the SMS group
+- Uses Firebase Admin SDK and Node.js 20
+- Deploy with: `firebase deploy --only functions`
+- See `functions/README.md` for API documentation

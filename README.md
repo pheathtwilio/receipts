@@ -133,10 +133,16 @@ src/
 
 ## Available Scripts
 
+### Frontend
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+
+### Firebase Functions
+- `cd functions && npm install` - Install function dependencies
+- `firebase deploy --only functions` - Deploy cloud functions
+- `cd functions && npm run serve` - Run functions locally with emulator
 
 ## Usage
 
@@ -147,6 +153,28 @@ src/
 5. **Delete Photo**: Click the trash icon on any photo card
 6. **Move Photos**: Select photos using checkboxes, click "Move Selected", and choose target group
 7. **Delete Group**: Click "Delete" in the groups list (confirms before deletion)
+
+## Cloud Functions
+
+The project includes Firebase Cloud Functions for receiving images via API:
+
+### Upload Images from URLs
+
+**Endpoint**: `POST /uploadImagesFromUrls`
+
+**Request**:
+```json
+{
+  "imageUrls": [
+    "https://example.com/image1.jpg",
+    "https://example.com/image2.png"
+  ]
+}
+```
+
+Images are automatically uploaded to the "SMS" default receipt group.
+
+See `functions/README.md` for detailed documentation.
 
 ## License
 

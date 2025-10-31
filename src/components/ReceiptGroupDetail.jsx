@@ -206,6 +206,49 @@ const ReceiptGroupDetail = () => {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedPhotos.length === photos.length) {
+      // Deselect all
+      setSelectedPhotos([]);
+    } else {
+      // Select all
+      setSelectedPhotos(photos.map((_, index) => index));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedPhotos.length === 0) {
+      setError('Please select photos to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedPhotos.length} photo(s)?`)) {
+      return;
+    }
+
+    try {
+      // Delete from storage
+      const deletePromises = selectedPhotos.map(index => {
+        const photoToDelete = photos[index];
+        const storageRef = ref(storage, photoToDelete.path);
+        return deleteObject(storageRef);
+      });
+
+      await Promise.all(deletePromises);
+
+      // Update Firestore
+      const remainingPhotos = photos.filter((_, index) => !selectedPhotos.includes(index));
+      await updateDoc(doc(db, 'receiptGroups', groupId), {
+        photos: remainingPhotos
+      });
+
+      setPhotos(remainingPhotos);
+      setSelectedPhotos([]);
+    } catch (err) {
+      setError('Failed to delete photos: ' + err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -248,15 +291,26 @@ const ReceiptGroupDetail = () => {
               {uploading ? 'Uploading...' : 'Upload Photos'}
             </button>
             {photos.length > 0 && (
-              <button
-                onClick={handleDownloadAll}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors flex items-center"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download All ({photos.length})
-              </button>
+              <>
+                <button
+                  onClick={handleSelectAll}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  {selectedPhotos.length === photos.length ? 'Deselect All' : 'Select All'}
+                </button>
+                <button
+                  onClick={handleDownloadAll}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download All ({photos.length})
+                </button>
+              </>
             )}
             {selectedPhotos.length > 0 && (
               <>
@@ -268,6 +322,15 @@ const ReceiptGroupDetail = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Download Selected ({selectedPhotos.length})
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Selected ({selectedPhotos.length})
                 </button>
                 <button
                   onClick={() => setShowMoveModal(true)}
